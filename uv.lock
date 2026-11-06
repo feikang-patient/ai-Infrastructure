@@ -422,6 +422,7 @@ dependencies = [
     { name = "langgraph-api" },
     { name = "langgraph-cli", extra = ["inmem"] },
     { name = "langgraph-sdk" },
+    { name = "opensandbox" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "tavily-python" },
@@ -453,6 +454,7 @@ requires-dist = [
     { name = "langgraph-api", specifier = ">=0.12.4" },
     { name = "langgraph-cli", extras = ["inmem"], specifier = ">=0.4.31" },
     { name = "langgraph-sdk", specifier = ">=0.4.2" },
+    { name = "opensandbox", specifier = ">=1.1.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.14.1" },
     { name = "tavily-python", specifier = ">=0.7.26" },
@@ -1846,6 +1848,24 @@ dependencies = [
 sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/7c/91/2d5722388a50cc86e162779df5fbfe0afa652a6e2d5c9ee616e081a82098/openai-3.19.2.tar.gz", hash = "sha256:de185f9834ad064d965ec42bd0766731cf66bceea16a7670294a835d207019e6", size = 1716953, upload-time = "2026-09-24T00:06:07.315Z" }
 wheels = [
     { url = "https://pypi.tuna.tsinghua.edu.cn/packages/bd/20/4fe123e60525375878c67d1d8d051c9c5dec81cc56a579ba9304ca743303/openai-3.19.2-py3-none-any.whl", hash = "sha256:66247fcd07266e72536e90656dc27f3b0bb1e9d8696d4013fc55402c0b96a5c2", size = 2071459, upload-time = "2026-09-24T00:06:05.416Z" },
+]
+
+[[package]]
+name = "opensandbox"
+version = "1.2.0"
+source = { registry = "https://pypi.tuna.tsinghua.edu.cn/simple" }
+dependencies = [
+    { name = "attrs" },
+    { name = "httpcore" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "opentelemetry-api" },
+    { name = "pydantic" },
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://pypi.tuna.tsinghua.edu.cn/packages/0b/2f/6682d18a69043b5ad29e8a411e969e2ee4216127dbc2257752690f502287/opensandbox-1.2.0.tar.gz", hash = "sha256:e7936d0bf3f7defa4e26571b0634089b4c3eb15d023909f6da9d940b95736c54", size = 329030, upload-time = "2026-10-27T12:36:39.214Z" }
+wheels = [
+    { url = "https://pypi.tuna.tsinghua.edu.cn/packages/4f/18/2de1578aead2e5da094c352e2c1610d750c399070769feac02cb42ff8941/opensandbox-1.2.0-py3-none-any.whl", hash = "sha256:15a0f3c3245018afa43b75fb14e892a64c2c8807276a0fdaf2a1a469f5e214ea", size = 744130, upload-time = "2026-10-27T12:36:37.805Z" },
 ]
 
 [[package]]
