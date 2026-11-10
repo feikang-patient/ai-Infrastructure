@@ -3,6 +3,7 @@ from deal_pilot.config.nacos.nacos_access_token import get_access_token
 from deal_pilot.config.nacos_settings import nacos_settings
 from deal_pilot.config.nacos.nacos_mcp import get_mcps
 from deal_pilot.utils.func_tools import func_cache
+from deal_pilot.config.nacos.nacos_prompt import get_prompts
 import asyncio
 import json
 import httpx
@@ -37,8 +38,11 @@ async def get_agent_spec(agent_name: str) -> AgentSpec:
         .get(f"instruction_{agent_name}/AGENTS__MD", {})
         .get("content", "")
     )
-    config["system_prompt"] = system_prompt
+
     config["name"] = agent_name
+    link_prompts = config.get("link_prompts", [])
+    prompt = await get_prompts(link_prompts)
+    config["system_prompt"] = system_prompt + "\n\n" + prompt
     return AgentSpec.model_validate(config)
 
 

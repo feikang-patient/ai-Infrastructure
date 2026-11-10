@@ -5,6 +5,7 @@ from langchain.tools import BaseTool
 
 from deepagents import create_deep_agent
 from deepagents.middleware import CompiledSubAgent
+from deal_pilot.backends.sandbox_backend import SandboxBackend
 from deal_pilot.utils.trace_wrapper import trace_wrapper
 from deal_pilot.agents.main_agent_state import MainAgentState
 from deal_pilot.middlewares.turn_summary import turn_summary
@@ -33,6 +34,7 @@ class MainAgentFactory(AgentFactory):
             state_schema=MainAgentState,
             subagents=[CompiledSubAgent(**config) for config in subagents],
             middleware=[turn_summary],
+            backend=SandboxBackend(),
         )
         return agent
 
