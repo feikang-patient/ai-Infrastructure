@@ -1,6 +1,6 @@
 DS ?= all
 
-.PHONY: docker-recreate build dev debug course course-push test-benchmark test-units
+.PHONY: docker-recreate build dev debug course course-push test-benchmark test-units test-integrations
 
 docker-recreate:
 	docker compose up -d --force-recreate
@@ -22,6 +22,9 @@ test-benchmark:
 
 test-units:
 	uv run pytest -q tests/units
+
+test-integrations:
+	MINIO_INTEGRATION=1 uv run pytest -q tests/intergrations
 
 course-push:
 	@[ -n "$(SHA)" ] || (echo "请提供提交 hash: make course-push SHA=<hash>" && exit 1)
