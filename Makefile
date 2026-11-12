@@ -24,7 +24,7 @@ test-units:
 	uv run pytest -q tests/units
 
 test-integrations:
-	MINIO_INTEGRATION=1 uv run pytest -q tests/intergrations
+	MINIO_INTEGRATION=1 DEPLOY_INTEGRATION=1 DEPLOY_SANDBOX_IMAGE=opensandbox-python-node:1.0 uv run pytest -q tests/intergrations
 
 course-push:
 	@[ -n "$(SHA)" ] || (echo "请提供提交 hash: make course-push SHA=<hash>" && exit 1)

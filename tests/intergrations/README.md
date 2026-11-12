@@ -1,7 +1,7 @@
-# MinIO 集成测试
+# MinIO 与 Deploy 集成测试
 
 按 `src/deal_pilot/utils/minio.py` 的公开契约验收，不依赖实现细节，不使用 Mock。
-目前模块还是占位接口，**测试预期会失败**；实现完成后再运行。
+Deploy 的远程用例需要同时准备真实 MinIO 和具有上传依赖的 OpenSandbox 镜像后验收。
 目录按要求保留拼写 `tests/intergrations`，Makefile 命令为 `test-integrations`。
 
 ## 复现
@@ -77,3 +77,80 @@
 本套测试不声称验证内部并发数量的精确上限、任务取消后的连接回收、
 下载中途断流、对象保留规则、真实证书下的 HTTPS 或预签名 URL 到期后的拒绝。
 这些场景需要额外的可控网络/服务条件；此处不通过 Mock 或计时竞态伪造覆盖。
+
+## Deploy 工具验收
+
+`test_deploy.py` 经真实 `StateGraph -> ToolNode -> deploy` 调用，不需要 LLM、API Key
+或 Agent Server。认证用户通过项目现有 `configurable.langgraph_auth_user_id` 传入，
+用户 ID 不属于模型可填写的工具参数。源文件只在真实 OpenSandbox 中准备，
+使用独立 S3 客户端核对最终对象，用真实 HTTP GET 核对交付 URL 和内容。
+
+### 验收契约
+
+- 使用共享固定桶：`<bucket>/<用户ID>/<target_dirname>/<相对文件路径>`。
+  部署桶名固定在部署模块内部，不通过环境变量配置。
+  测试仅在进程内将模块常量 `_BUCKET_NAME` 替换为随机测试桶，
+  不修改生产工具、配置文件或业务桶。
+- 工具使用当前认证用户在 graph store 中登记的已有沙箱。
+  保留目录相对路径；单文件以 basename 上传，覆盖同名对象并保留其他对象；
+  目录部署先删除目标前缀下的全部旧对象，再上传新目录。
+- `entry_files` 保持给定顺序，必须实际存在且为待上传文件。
+  非法参数、路径越界、缺失源或入口、空目录在上传前报可识别的工具错误，
+  不得写入任何对象。目录扫描跳过符号链接（包括环和外部链接）和 FIFO。
+- 任一文件上传失败时返回准确的计数和以沙箱绝对路径为键的 `failures`，
+  继续处理其他文件；只返回本次上传成功的入口，不得返回失败文件的 URL。
+  参数和产物路径错误返回模型可修复的工具错误。
+  认证用户缺失、MinIO 配置、服务连接、认证或旧文件清理错误抛普通异常终止图运行。
+- 沙箱使用 `MINIO_ENDPOINT_IN_SANDBOX` 直连 MinIO，宿主地址只用于验证和交付 URL。
+  允许公共读 URL 或可实际读取的预签名 GET URL，工具返回内容不得泄露 MinIO 凭据。
+
+如果最终桶配置或错误语义采用其他约定，应先同步这些验收契约，避免测试和实现各自猜测。
+
+### 启用和复现
+
+准备已经运行的 MinIO 与 OpenSandbox Server；测试不会启动、重启或重建这两个服务。
+项目 Compose 的服务启动、端口和持久化说明见项目 README。
+运行前配置：
+
+- `MINIO_ENDPOINT`、`MINIO_ACCESS_KEY`、`MINIO_SECRET_KEY`、`MINIO_SECURE`。
+- `MINIO_ENDPOINT_IN_SANDBOX`，Docker Desktop 通常为 `host.docker.internal:9002`，
+  地址不含协议；它必须能从沙箱访问 MinIO API。
+- `OPEN_SANDBOX_DOMAIN`、`OPEN_SANDBOX_API_KEY`。
+- `DEPLOY_SANDBOX_IMAGE`，须使用项目 `docker/sandbox/Dockerfile` 构建的镜像。
+  当前工具使用镜像内 `/sandbox_utils` 的 uv、aiobotocore 和 MinIO 客户端。
+  可手动构建：`docker build -t deal-pilot-sandbox:deploy-it -f docker/sandbox/Dockerfile .`。
+  构建会下载基础镜像和依赖，并在本机保存新镜像，不启动服务或挂载业务数据卷；
+  学生执行同一命令即可准备。测试不会自动构建镜像。
+
+```sh
+MINIO_INTEGRATION=1 DEPLOY_INTEGRATION=1 DEPLOY_SANDBOX_IMAGE=deal-pilot-sandbox:deploy-it uv run pytest -q tests/intergrations/test_deploy.py
+```
+
+只设置 `MINIO_INTEGRATION=1`（包括现有 `make test-integrations`）不会创建沙箱。
+要通过 Makefile 同时验收两者，使用
+`DEPLOY_INTEGRATION=1 DEPLOY_SANDBOX_IMAGE=deal-pilot-sandbox:deploy-it make test-integrations`。
+缺少必要配置会失败；未启用时跳过远程场景，工具参数 schema 检查仍可本地运行。
+
+### 数据影响、回滚与覆盖边界
+
+每个远程用例创建随机私有测试桶及一个或两个独立沙箱，源文件写入沙箱的
+`/tmp/deploy-integration/workspace`。沙箱 **不挂载持久卷**，不会使用已有用户沙箱。
+测试把这些沙箱 ID 写入用例专属的 `InMemoryStore`；配置读取在测试进程内替换，
+不依赖或修改 Nacos。若工具误走创建持久卷的路径，测试直接失败。
+测试禁止常见的宿主 SDK 下载、MinIO 上传路径；这些守卫只做断言，
+不伪造上传成功或 MinIO 响应。并发调用通过 ContextVar 分别标记，避免互相替换守卫。
+
+用例结束会终止沙箱、关闭连接，再删除测试桶、对象及历史版本；异常同样执行清理。
+回滚即上述清理，不改服务账号、业务桶、数据库、容器配置或已有数据卷。
+强制结束进程可能留下测试桶或临时沙箱，请按本次资源 ID 确认后清理；
+沙箱同时设有 10 分钟生命周期，正常退出执行显式终止。
+
+覆盖单文件、空文件、UTF-8、二进制、6 MiB、递归目录、同名嵌套文件、隐藏文件、
+中文和 URL 特殊字符、shell 元字符、空目录、链接环、FIFO、源文件不变、重复覆盖、
+项目隔离、并发用户隔离、认证缺失、非法目标及入口、错误 MinIO 凭据和沙箱不可达地址。
+
+尚不覆盖人为设置权限拒绝造成的部分或全部上传失败、上传中途断流、沙箱突然退出、
+预签名 URL 真实到期、POSIX 无读权限文件、
+生产 LLM 选择工具过程、完整 Agent Server 鉴权或 Nacos 配置服务。
+守卫覆盖项目现有 SDK 入口，并不声称证明任意自定义 HTTP 客户端都不会中转。
+工具尚未实现时，本套远程测试不使用 xfail 或自动跳过来伪装通过。
