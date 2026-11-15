@@ -102,7 +102,6 @@ class AgentFactory(ABC):
             system_prompt=agent_config.system_prompt,
             tools=tools,
             subagents=subagents,
-            skills=agent_config.skills,
         )
         return agent
 
@@ -114,5 +113,4 @@ class AgentFactory(ABC):
         system_prompt: str,
         tools: Sequence[BaseTool],
         subagents: list[dict],
-        skills: list[str],
     ) -> Runnable: ...

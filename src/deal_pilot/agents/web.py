@@ -22,7 +22,6 @@ class WebAgentFactory(AgentFactory):
         system_prompt: str,
         tools: Sequence[BaseTool],
         subagents: list[dict],
-        skills: list[str],
     ) -> Runnable:
         middlewares = []
         if len(subagents):

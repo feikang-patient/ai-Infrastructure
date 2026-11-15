@@ -2,6 +2,10 @@ FROM node:24-bookworm AS node
 
 FROM python:3.13-bookworm
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends unzip \
+    && rm -rf /var/lib/apt/lists/*
+
 # 从同为 Debian Bookworm 的官方镜像复制 Node.js 和 npm。
 COPY --from=node /usr/local/bin/node /usr/local/bin/node
 COPY --from=node /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/npm

@@ -20,7 +20,6 @@ class AgentSpec(BaseModel):
     description: str = Field(default="")
     system_prompt: str = Field(default="")
     model: AgentModelConfig = Field(default_factory=AgentModelConfig)
-    skills: list[str] = Field(default_factory=list)
     mcps: dict[str, MCPServerConfig] = Field(default_factory=dict)
     tools: list[str] = Field(default_factory=list)
     subagents: list[str] = Field(default_factory=list)
