@@ -24,6 +24,7 @@ class AgentSpec(BaseModel):
     tools: list[str] = Field(default_factory=list)
     subagents: list[str] = Field(default_factory=list)
     link_prompts: list[str] = Field(default_factory=list)
+    skills: list[str] = Field(default_factory=list)
 
 
 class OpenSandboxConfig(BaseModel):

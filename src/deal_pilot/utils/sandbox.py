@@ -40,6 +40,8 @@ async def _get_store(store: BaseStore, key: str, field_name: str) -> str | None:
 
 async def _create(
     *,
+    key: str,
+    store: BaseStore,
     sandbox_config: OpenSandboxConfig,
     connection_config: ConnectionConfig,
     volume_configs: list[VolumeConfig] | None = None,
@@ -71,6 +73,7 @@ async def _create(
         # 挂载卷柜
         volumes=volumes,
     )
+    await store.aput(_NAMESPACE, key, {"sandbox_id": sandbox.id})
     return sandbox
 
 
@@ -131,6 +134,8 @@ async def get_sandbox(
             sandbox_config=sandbox_config,
             connection_config=connection_config,
             volume_configs=volume_configs,
+            store=store,
+            key=key,
         )
         return sandbox
 

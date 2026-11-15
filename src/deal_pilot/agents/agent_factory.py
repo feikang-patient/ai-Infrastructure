@@ -2,8 +2,17 @@ from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any
 
+from deepagents import (
+    AsyncSubAgent,
+    CompiledSubAgent,
+    DeepAgentState,
+    SubAgent,
+    create_deep_agent,
+)
+from deepagents.backends import BackendProtocol
 from langchain.tools import BaseTool
 from langchain_mcp_adapters.client import MultiServerMCPClient
+from deal_pilot.backends.sandbox_backend import SandboxBackend
 from deal_pilot.config.nacos.nacos_agent_spec import get_agent_spec
 from deal_pilot.config.nacos.nacos_schemas import AgentSpec
 from langchain_core.runnables import Runnable
@@ -12,6 +21,7 @@ from deal_pilot.tools import get_tools
 import asyncio
 from deal_pilot.utils.func_tools import func_cache
 from importlib import import_module
+from langchain.agents.middleware import AgentMiddleware
 
 _AGENT_FACTORIES = {"web_agent": "deal_pilot.agents.web"}
 
@@ -102,10 +112,10 @@ class AgentFactory(ABC):
             system_prompt=agent_config.system_prompt,
             tools=tools,
             subagents=subagents,
+            skills=agent_config.skills,
         )
         return agent
 
-    @abstractmethod
     async def create_agent(
         self,
         *,
@@ -113,4 +123,33 @@ class AgentFactory(ABC):
         system_prompt: str,
         tools: Sequence[BaseTool],
         subagents: list[dict],
-    ) -> Runnable: ...
+        skills: list[str],
+    ) -> Runnable:
+        config = {
+            "model": model,
+            "system_prompt": system_prompt,
+            "tools": tools,
+            "state_schema": self.get_state_schema(),
+            "subagents": self.get_subagents(subagents),
+            "middleware": self.get_middlewares(),
+            "backend": self.get_backend(),
+        }
+        if len(skills):
+            config["skills"] = [f"/shared/skills/{self.name}"]
+
+        agent = create_deep_agent(**config)
+        return agent
+
+    def get_backend(self) -> BackendProtocol | None:
+        return SandboxBackend()
+
+    def get_middlewares(self) -> Sequence[AgentMiddleware]:
+        return []
+
+    def get_subagents(
+        self, subagent_configs: list[dict]
+    ) -> Sequence[SubAgent | CompiledSubAgent | AsyncSubAgent] | None:
+        return [CompiledSubAgent(**config) for config in subagent_configs]
+
+    def get_state_schema(self) -> type[DeepAgentState] | None:
+        return DeepAgentState
